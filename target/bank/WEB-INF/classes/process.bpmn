@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd" id="Definitions_1" exporter="Camunda Modeler" exporterVersion="1.14.0" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="schufa" name="bank" isExecutable="true">
+    <bpmn:sequenceFlow id="SequenceFlow_1" name="" sourceRef="StartEventProcessStarted" targetRef="ScoreAbfragen"/>
+    <bpmn:sequenceFlow id="SequenceFlow_10" name="" sourceRef="ScoreAbfragen" targetRef="ExclusiveGateway_2"/>
+    <bpmn:exclusiveGateway id="ExclusiveGateway_3">
+      <bpmn:incoming>SequenceFlow_6</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_7</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SequenceFlow_8" name="" sourceRef="ExclusiveGateway_3" targetRef="DbSpeichern"/>
+    <bpmn:userTask id="ManuellPruefen" camunda:candidateUsers="john" name="Antrag manuell prüfen">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="vorname" label="Vorname" type="string">
+            <camunda:validation>
+              <camunda:constraint name="readonly"/>
+            </camunda:validation>
+          </camunda:formField>
+          <camunda:formField id="nachname" label="Nachname" type="string">
+            <camunda:validation>
+              <camunda:constraint name="readonly"/>
+            </camunda:validation>
+          </camunda:formField>
+          <camunda:formField id="kreditsumme" label="Kreditsumme" type="string">
+            <camunda:validation>
+              <camunda:constraint name="readonly"/>
+            </camunda:validation>
+          </camunda:formField>
+          <camunda:formField id="laufzeit" label="Laufzeit" type="long">
+            <camunda:validation>
+              <camunda:constraint name="readonly"/>
+            </camunda:validation>
+          </camunda:formField>
+          <camunda:formField id="score" label="Score" type="long">
+            <camunda:validation>
+              <camunda:constraint name="readonly"/>
+            </camunda:validation>
+          </camunda:formField>
+          <camunda:formField id="anmerkung" label="Anmerkung" type="string">
+            <camunda:validation>
+              <camunda:constraint name="required"/>
+              <camunda:constraint name="minlength" config="2"/>
+              <camunda:constraint name="maxlength" config="150"/>
+            </camunda:validation>
+          </camunda:formField>
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_5</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_7</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="SequenceFlow_7" name="" sourceRef="ManuellPruefen" targetRef="ExclusiveGateway_3"/>
+    <bpmn:exclusiveGateway id="ExclusiveGateway_2" name="kreditwürdig?">
+      <bpmn:incoming>SequenceFlow_10</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_5</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SequenceFlow_5" name="nicht kreditwürdig" sourceRef="ExclusiveGateway_2" targetRef="ManuellPruefen">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[#{score < 1000}]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_6" name="kreditwürdig" sourceRef="ExclusiveGateway_2" targetRef="ExclusiveGateway_3">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">#{score >= 1000}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="DbSpeichern" name="Ergebnis speichern">
+      <bpmn:documentation>DB noch anbinden</bpmn:documentation>
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="ok" label="OK?" type="boolean"/>
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_8</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_9</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="SequenceFlow_9" name="" sourceRef="DbSpeichern" targetRef="EndEvent_1"/>
+    <bpmn:endEvent id="EndEvent_1" name="Antrag bearbeitet">
+      <bpmn:incoming>SequenceFlow_9</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:startEvent id="StartEventProcessStarted" name="Antrag eingegangen">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="vorname" label="Vorname" type="string">
+            <camunda:validation>
+              <camunda:constraint name="required"/>
+              <camunda:constraint name="minlength" config="2"/>
+              <camunda:constraint name="maxlength" config="25"/>
+            </camunda:validation>
+          </camunda:formField>
+          <camunda:formField id="nachname" label="Nachname" type="string">
+            <camunda:validation>
+              <camunda:constraint name="required"/>
+              <camunda:constraint name="minlength" config="2"/>
+              <camunda:constraint name="maxlength" config="25"/>
+            </camunda:validation>
+          </camunda:formField>
+          <camunda:formField id="kreditsumme" label="Kreditsumme" type="long">
+            <camunda:validation>
+              <camunda:constraint name="required"/>
+              <camunda:constraint name="min" config="1000"/>
+              <camunda:constraint name="max" config="50000"/>
+            </camunda:validation>
+          </camunda:formField>
+          <camunda:formField id="laufzeit" label="Laufzeit" type="long">
+            <camunda:validation>
+              <camunda:constraint name="required"/>
+              <camunda:constraint name="min" config="1"/>
+              <camunda:constraint name="max" config="25"/>
+            </camunda:validation>
+          </camunda:formField>
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>SequenceFlow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="ScoreAbfragen" camunda:class="de.avg.bank.SchufaAnfrageStellen" name="Schufa-Anfrage stellen">
+      <bpmn:incoming>SequenceFlow_1</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_10</bpmn:outgoing>
+    </bpmn:serviceTask>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="schufa">
+      <bpmndi:BPMNEdge id="BPMNEdge_SequenceFlow_1" bpmnElement="SequenceFlow_1" sourceElement="StartEvent_0b7nwby_di" targetElement="ServiceTask_1ikva3x_di">
+        <di:waypoint xsi:type="dc:Point" x="209.0" y="234.0"/>
+        <di:waypoint xsi:type="dc:Point" x="370.0" y="234.0"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds height="6.0" width="90.0" x="244.5" y="216.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="_BPMNShape_ExclusiveGateway_3" bpmnElement="ExclusiveGateway_2" isMarkerVisible="true">
+        <dc:Bounds height="50.0" width="50.0" x="647.0" y="209.0"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds height="12.0" width="65.0" x="706.5" y="228.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_UserTask_3" bpmnElement="ManuellPruefen">
+        <dc:Bounds height="80.0" width="100.0" x="763.0" y="309.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_SequenceFlow_5" bpmnElement="SequenceFlow_5" sourceElement="_BPMNShape_ExclusiveGateway_3" targetElement="_BPMNShape_UserTask_3">
+        <di:waypoint xsi:type="dc:Point" x="672.0" y="259.0"/>
+        <di:waypoint xsi:type="dc:Point" x="672.0" y="349.0"/>
+        <di:waypoint xsi:type="dc:Point" x="763.0" y="349.0"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds height="12.0" width="85.0" x="608.0" y="287.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="_BPMNShape_ExclusiveGateway_4" bpmnElement="ExclusiveGateway_3" isMarkerVisible="true">
+        <dc:Bounds height="50.0" width="50.0" x="934.0" y="209.0"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds height="0.0" width="90.0" x="834.0" y="234.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_SequenceFlow_6" bpmnElement="SequenceFlow_6" sourceElement="_BPMNShape_ExclusiveGateway_3" targetElement="_BPMNShape_ExclusiveGateway_4">
+        <di:waypoint xsi:type="dc:Point" x="672.0" y="209.0"/>
+        <di:waypoint xsi:type="dc:Point" x="672.0" y="172.0"/>
+        <di:waypoint xsi:type="dc:Point" x="959.0" y="172.0"/>
+        <di:waypoint xsi:type="dc:Point" x="959.0" y="209.0"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds height="12.0" width="59.0" x="775.0" y="151.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_SequenceFlow_7" bpmnElement="SequenceFlow_7" sourceElement="_BPMNShape_UserTask_3" targetElement="_BPMNShape_ExclusiveGateway_4">
+        <di:waypoint xsi:type="dc:Point" x="863.0" y="349.0"/>
+        <di:waypoint xsi:type="dc:Point" x="959.0" y="349.0"/>
+        <di:waypoint xsi:type="dc:Point" x="959.0" y="259.0"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds height="6.0" width="90.0" x="866.0" y="331.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="_BPMNShape_ServiceTask_2" bpmnElement="DbSpeichern">
+        <dc:Bounds height="80.0" width="100.0" x="1065.0" y="194.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_SequenceFlow_8" bpmnElement="SequenceFlow_8" sourceElement="_BPMNShape_ExclusiveGateway_4" targetElement="_BPMNShape_ServiceTask_2">
+        <di:waypoint xsi:type="dc:Point" x="984.0" y="234.0"/>
+        <di:waypoint xsi:type="dc:Point" x="1065.0" y="234.0"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds height="6.0" width="90.0" x="979.5" y="216.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="_BPMNShape_EndEvent_2" bpmnElement="EndEvent_1">
+        <dc:Bounds height="36.0" width="36.0" x="1299.0" y="216.0"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds height="12.0" width="85.0" x="1275.0" y="257.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_SequenceFlow_9" bpmnElement="SequenceFlow_9" sourceElement="_BPMNShape_ServiceTask_2" targetElement="_BPMNShape_EndEvent_2">
+        <di:waypoint xsi:type="dc:Point" x="1165.0" y="234.0"/>
+        <di:waypoint xsi:type="dc:Point" x="1299.0" y="234.0"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds height="6.0" width="90.0" x="1187.0" y="216.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_SequenceFlow_10" bpmnElement="SequenceFlow_10" sourceElement="ServiceTask_1ikva3x_di" targetElement="_BPMNShape_ExclusiveGateway_3">
+        <di:waypoint xsi:type="dc:Point" x="470.0" y="234.0"/>
+        <di:waypoint xsi:type="dc:Point" x="647.0" y="234.0"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds height="6.0" width="90.0" x="513.5" y="216.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="StartEvent_0b7nwby_di" bpmnElement="StartEventProcessStarted">
+        <dc:Bounds height="36.0" width="36.0" x="173.0" y="216.0"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds height="24.0" width="62.0" x="161.0" y="257.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_1ikva3x_di" bpmnElement="ScoreAbfragen">
+        <dc:Bounds height="80.0" width="100.0" x="370.0" y="194.0"/>
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

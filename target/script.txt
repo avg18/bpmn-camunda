@@ -1,0 +1,7 @@
+docker cp C:\workspace\eclipse\bank\target\bank.war 78182e6c94a7:\camunda\webapps\bank.war
+
+anzahl vergebener kredite
+marktleitzins niedrig --> mehr kredite vergeben und sonts umgekehrt
+motiv des kreditnehmers gefällt uns nicht
+kreditdauer > 10 jahre, score muss 20% höher als normal sein
+je höher der gewollte kredit, desto niedriger darf die score sein, solange sie noch über dem minimum liegt
