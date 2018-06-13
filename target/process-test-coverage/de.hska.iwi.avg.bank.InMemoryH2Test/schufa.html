@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+  <meta http-equiv="cache-control" content="max-age=0" />
+  <meta http-equiv="cache-control" content="no-cache" />
+  <meta http-equiv="expires" content="0" />
+  <meta http-equiv="pragma" content="no-cache" />
+
+  <style type="text/css">
+    html, body, #canvas {
+      height: 100%;
+      padding: 0;
+    }
+    
+    .transaction-boundary {
+      background-color: rgba(180, 21, 21, 0.7);
+      border-radius: 1px;
+      min-height: 50px;
+      width: 3px;
+    }
+
+    .execution-listener {
+      background-color: rgba(21, 66, 180, 0.7);
+      color: White;
+      border-radius: 5px;
+      font-family: Arial;
+      font-size: 12px;
+      padding: 5px;
+      min-height: 16px;
+      min-width: 16px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .highlight:not(.djs-connection) .djs-visual > :nth-child(1) {
+      fill: rgba(66, 180, 21, 0.7) !important; /* color elements as green */
+    }
+    
+    .highlight-running .djs-visual > :nth-child(1) {
+    	fill: rgba(0, 198, 218, 0.7) !important; /* color still running flow nodes as blue */
+    }
+    
+    #info-box {
+   	  margin-left: 20px;
+      margin-top: 15px;
+      padding: 10px;
+      table-layout: fixed;
+      border-collapse: collapse;
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      font-family: sans-serif;
+      line-height: 150%;
+      font-size: 80%;
+      z-index: 1000;
+      background-color: rgba(255,255,255,0.90);
+      border-radius: 10px;
+    }
+  </style>
+
+  <title>Process Test Coverage Report</title>
+</head>
+<body>
+
+  <div id="info-box">
+	<div>Process Definition Name: schufa</div>
+	<div>Coverage: 0%</div>
+	<div>Test Class: de.hska.iwi.avg.bank.InMemoryH2Test</div>
+	
+  </div>
+  
+  <!-- element to draw bpmn diagram in -->
+  <div id="canvas"></div>
+
+  <!-- scripts -->
+
+  <!-- seed dependencies (required for demo only) -->
+  <script src="../bower_components/jquery/dist/jquery.js"></script>
+
+  <!-- bpmn-js viewer -->
+  <script src="../bower_components/bpmn-js/dist/bpmn-navigated-viewer.js"></script>
+
+  <!-- application -->
+  <script>
+    (function(NavigatedViewer, $) {
+
+      // create viewer
+      var bpmnViewer = new NavigatedViewer({
+        container: '#canvas'
+      });
+
+
+      // import function
+      function importXML(xml) {
+
+        // import diagram
+        bpmnViewer.importXML(xml, function(err) {
+
+          if (err) {
+            return console.error('could not import BPMN 2.0 diagram', err);
+          }
+
+          var canvas = bpmnViewer.get('canvas'),
+              overlays = bpmnViewer.get('overlays');
+
+
+          // zoom to fit full viewport
+          canvas.zoom('fit-viewport', true);
+
+      // visualizations          
+      elementRegistry = bpmnViewer.get('elementRegistry');
+      var elements = elementRegistry.getAll();
+      console.log(elements);
+      for (var i = 0; i < elements.length; i++) {
+        var element = elements[i];
+        if (element.type != 'label') {
+          
+          // Transaction Boundaries
+          if (element.businessObject.$attrs["camunda:asyncBefore"]
+                || element.businessObject.$attrs["camunda:async"]
+                || element.type == 'bpmn:ReceiveTask'
+                || element.type == 'bpmn:UserTask'
+                || element.type == 'bpmn:IntermediateCatchEvent'
+             ) {
+            overlays.add(element.id, 'note', {
+              position: {
+                bottom: (element.type == 'bpmn:IntermediateCatchEvent' ? 18 : 40),
+                left: -4
+              },
+              html: '<div class="transaction-boundary"></div>'
+            });
+          }
+          if (element.businessObject.$attrs["camunda:asyncAfter"]) {
+            overlays.add(element.id, 'note', {
+              position: {
+                bottom: 19,
+                right: -1
+              },
+              html: '<div class="transaction-boundary"></div>'
+            });
+          }
+          
+          if (element.businessObject.extensionElements) {
+            var extensionElements = element.businessObject.extensionElements.values;
+            for (var j = 0; j < extensionElements.length; j++) {
+              console.log(extensionElements[j]);
+              if (extensionElements[j].$type == 'camunda:executionListener') {
+                if (extensionElements[j].event == 'end') {
+                  overlays.add(element.id, 'note', {
+                    position: {
+                      bottom: 0,
+                      right: 0
+                    },
+                    html: '<div class="execution-listener">' + extensionElements[j].expression + '</div>'
+                  });
+                }
+                if (extensionElements[j].event == 'start') {
+                  overlays.add(element.id, 'note', {
+                    position: {
+                      bottom: 0,
+                      left: 0
+                    },
+                    html: '<div class="execution-listener">' + extensionElements[j].expression + '</div>'
+                  });
+                }
+              }
+            }
+          }
+ 
+ 		  if (element.type == 'bpmn:SequenceFlow' && element.businessObject.conditionExpression) {
+ 		      var position = {
+                      left: 0
+                    }
+              if (element.waypoints[0].y > element.waypoints[element.waypoints.length - 1].y) {
+              	position.top = -29;
+              } else {
+                position.bottom = -3;
+              }    
+          	  overlays.add(element.id, 'note', {
+                    position: position,
+                    html: '<div class="execution-listener">' + element.businessObject.conditionExpression.body + '</div>'
+                  }); 
+		  }
+          
+          if (element.businessObject.$attrs["camunda:delegateExpression"]) {
+            overlays.add(element.id, 'note', {
+              position: {
+                bottom: -3,
+                left: 0
+              },
+              html: '<div class="execution-listener">' + element.businessObject.$attrs["camunda:delegateExpression"] + '</div>'
+            });
+          }
+          
+        }
+      }          
+          //YOUR ANNOTATIONS GO HERE
+
+        });
+      }
+
+
+      var diagramXML = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<bpmn:definitions xmlns:xsi=\"http:\/\/www.w3.org\/2001\/XMLSchema-instance\" xmlns:bpmn=\"http:\/\/www.omg.org\/spec\/BPMN\/20100524\/MODEL\" xmlns:bpmndi=\"http:\/\/www.omg.org\/spec\/BPMN\/20100524\/DI\" xmlns:camunda=\"http:\/\/camunda.org\/schema\/1.0\/bpmn\" xmlns:dc=\"http:\/\/www.omg.org\/spec\/DD\/20100524\/DC\" xmlns:di=\"http:\/\/www.omg.org\/spec\/DD\/20100524\/DI\" id=\"Definitions_1\" targetNamespace=\"http:\/\/bpmn.io\/schema\/bpmn\" exporter=\"Camunda Modeler\" exporterVersion=\"1.14.0\" xsi:schemaLocation=\"http:\/\/www.omg.org\/spec\/BPMN\/20100524\/MODEL BPMN20.xsd\">\n  <bpmn:process id=\"schufa\" name=\"bank\" isExecutable=\"true\">\n    <bpmn:extensionElements>\n      <camunda:executionListener class=\"\" event=\"end\" \/>\n    <\/bpmn:extensionElements>\n    <bpmn:sequenceFlow id=\"SequenceFlow_1\" name=\"\" sourceRef=\"StartEventProcessStarted\" targetRef=\"ScoreAbfragen\" \/>\n    <bpmn:sequenceFlow id=\"SequenceFlow_10\" name=\"\" sourceRef=\"ScoreAbfragen\" targetRef=\"ExclusiveGateway_2\" \/>\n    <bpmn:exclusiveGateway id=\"ExclusiveGateway_3\">\n      <bpmn:incoming>SequenceFlow_6<\/bpmn:incoming>\n      <bpmn:incoming>SequenceFlow_7<\/bpmn:incoming>\n      <bpmn:outgoing>SequenceFlow_8<\/bpmn:outgoing>\n    <\/bpmn:exclusiveGateway>\n    <bpmn:sequenceFlow id=\"SequenceFlow_8\" name=\"\" sourceRef=\"ExclusiveGateway_3\" targetRef=\"DbSpeichern\" \/>\n    <bpmn:userTask id=\"ManuellPruefen\" name=\"Antrag manuell pr\u00FCfen\" camunda:candidateUsers=\"john\">\n      <bpmn:extensionElements>\n        <camunda:formData>\n          <camunda:formField id=\"vorname\" label=\"Vorname\" type=\"string\">\n            <camunda:validation>\n              <camunda:constraint name=\"readonly\" \/>\n            <\/camunda:validation>\n          <\/camunda:formField>\n          <camunda:formField id=\"nachname\" label=\"Nachname\" type=\"string\">\n            <camunda:validation>\n              <camunda:constraint name=\"readonly\" \/>\n            <\/camunda:validation>\n          <\/camunda:formField>\n          <camunda:formField id=\"kreditsumme\" label=\"Kreditsumme\" type=\"string\">\n            <camunda:validation>\n              <camunda:constraint name=\"readonly\" \/>\n            <\/camunda:validation>\n          <\/camunda:formField>\n          <camunda:formField id=\"laufzeit\" label=\"Laufzeit\" type=\"long\">\n            <camunda:validation>\n              <camunda:constraint name=\"readonly\" \/>\n            <\/camunda:validation>\n          <\/camunda:formField>\n          <camunda:formField id=\"score\" label=\"Score\" type=\"long\">\n            <camunda:validation>\n              <camunda:constraint name=\"readonly\" \/>\n            <\/camunda:validation>\n          <\/camunda:formField>\n          <camunda:formField id=\"anmerkung\" label=\"Anmerkung\" type=\"string\">\n            <camunda:validation>\n              <camunda:constraint name=\"required\" \/>\n              <camunda:constraint name=\"minlength\" config=\"2\" \/>\n              <camunda:constraint name=\"maxlength\" config=\"150\" \/>\n            <\/camunda:validation>\n          <\/camunda:formField>\n        <\/camunda:formData>\n      <\/bpmn:extensionElements>\n      <bpmn:incoming>SequenceFlow_5<\/bpmn:incoming>\n      <bpmn:outgoing>SequenceFlow_7<\/bpmn:outgoing>\n    <\/bpmn:userTask>\n    <bpmn:sequenceFlow id=\"SequenceFlow_7\" name=\"\" sourceRef=\"ManuellPruefen\" targetRef=\"ExclusiveGateway_3\" \/>\n    <bpmn:exclusiveGateway id=\"ExclusiveGateway_2\" name=\"kreditw\u00FCrdig?\">\n      <bpmn:incoming>SequenceFlow_10<\/bpmn:incoming>\n      <bpmn:outgoing>SequenceFlow_5<\/bpmn:outgoing>\n      <bpmn:outgoing>SequenceFlow_6<\/bpmn:outgoing>\n    <\/bpmn:exclusiveGateway>\n    <bpmn:sequenceFlow id=\"SequenceFlow_5\" name=\"nicht kreditw\u00FCrdig\" sourceRef=\"ExclusiveGateway_2\" targetRef=\"ManuellPruefen\">\n      <bpmn:conditionExpression xsi:type=\"bpmn:tFormalExpression\">#{score &lt; 1000}<\/bpmn:conditionExpression>\n    <\/bpmn:sequenceFlow>\n    <bpmn:sequenceFlow id=\"SequenceFlow_6\" name=\"kreditw\u00FCrdig\" sourceRef=\"ExclusiveGateway_2\" targetRef=\"ExclusiveGateway_3\">\n      <bpmn:conditionExpression xsi:type=\"bpmn:tFormalExpression\">#{score &gt;= 1000}<\/bpmn:conditionExpression>\n    <\/bpmn:sequenceFlow>\n    <bpmn:userTask id=\"DbSpeichern\" name=\"Ergebnis speichern\">\n      <bpmn:documentation>DB noch anbinden<\/bpmn:documentation>\n      <bpmn:extensionElements>\n        <camunda:formData>\n          <camunda:formField id=\"ok\" label=\"OK?\" type=\"boolean\" \/>\n        <\/camunda:formData>\n      <\/bpmn:extensionElements>\n      <bpmn:incoming>SequenceFlow_8<\/bpmn:incoming>\n      <bpmn:outgoing>SequenceFlow_9<\/bpmn:outgoing>\n    <\/bpmn:userTask>\n    <bpmn:sequenceFlow id=\"SequenceFlow_9\" name=\"\" sourceRef=\"DbSpeichern\" targetRef=\"EndEvent_1\" \/>\n    <bpmn:endEvent id=\"EndEvent_1\" name=\"Antrag bearbeitet\">\n      <bpmn:incoming>SequenceFlow_9<\/bpmn:incoming>\n    <\/bpmn:endEvent>\n    <bpmn:startEvent id=\"StartEventProcessStarted\" name=\"Antrag eingegangen\">\n      <bpmn:extensionElements>\n        <camunda:formData>\n          <camunda:formField id=\"vorname\" label=\"Vorname\" type=\"string\">\n            <camunda:validation>\n              <camunda:constraint name=\"required\" \/>\n              <camunda:constraint name=\"minlength\" config=\"2\" \/>\n              <camunda:constraint name=\"maxlength\" config=\"25\" \/>\n            <\/camunda:validation>\n          <\/camunda:formField>\n          <camunda:formField id=\"nachname\" label=\"Nachname\" type=\"string\">\n            <camunda:validation>\n              <camunda:constraint name=\"required\" \/>\n              <camunda:constraint name=\"minlength\" config=\"2\" \/>\n              <camunda:constraint name=\"maxlength\" config=\"25\" \/>\n            <\/camunda:validation>\n          <\/camunda:formField>\n          <camunda:formField id=\"kreditsumme\" label=\"Kreditsumme\" type=\"long\">\n            <camunda:validation>\n              <camunda:constraint name=\"required\" \/>\n              <camunda:constraint name=\"min\" config=\"1000\" \/>\n              <camunda:constraint name=\"max\" config=\"50000\" \/>\n            <\/camunda:validation>\n          <\/camunda:formField>\n          <camunda:formField id=\"laufzeit\" label=\"Laufzeit\" type=\"long\">\n            <camunda:validation>\n              <camunda:constraint name=\"required\" \/>\n              <camunda:constraint name=\"min\" config=\"1\" \/>\n              <camunda:constraint name=\"max\" config=\"25\" \/>\n            <\/camunda:validation>\n          <\/camunda:formField>\n        <\/camunda:formData>\n      <\/bpmn:extensionElements>\n      <bpmn:outgoing>SequenceFlow_1<\/bpmn:outgoing>\n    <\/bpmn:startEvent>\n    <bpmn:serviceTask id=\"ScoreAbfragen\" name=\"Schufa-Anfrage stellen\" camunda:class=\"de.avg.bank.SchufaAnfrageStellen\">\n      <bpmn:incoming>SequenceFlow_1<\/bpmn:incoming>\n      <bpmn:outgoing>SequenceFlow_10<\/bpmn:outgoing>\n    <\/bpmn:serviceTask>\n  <\/bpmn:process>\n  <bpmndi:BPMNDiagram id=\"BPMNDiagram_1\">\n    <bpmndi:BPMNPlane id=\"BPMNPlane_1\" bpmnElement=\"schufa\">\n      <bpmndi:BPMNEdge id=\"BPMNEdge_SequenceFlow_1\" bpmnElement=\"SequenceFlow_1\" sourceElement=\"StartEvent_0b7nwby_di\" targetElement=\"ServiceTask_1ikva3x_di\">\n        <di:waypoint x=\"209\" y=\"234\" \/>\n        <di:waypoint x=\"370\" y=\"234\" \/>\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"244.5\" y=\"216\" width=\"90\" height=\"6\" \/>\n        <\/bpmndi:BPMNLabel>\n      <\/bpmndi:BPMNEdge>\n      <bpmndi:BPMNShape id=\"_BPMNShape_ExclusiveGateway_3\" bpmnElement=\"ExclusiveGateway_2\" isMarkerVisible=\"true\">\n        <dc:Bounds x=\"647\" y=\"209\" width=\"50\" height=\"50\" \/>\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"706.5\" y=\"228\" width=\"65\" height=\"12\" \/>\n        <\/bpmndi:BPMNLabel>\n      <\/bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"_BPMNShape_UserTask_3\" bpmnElement=\"ManuellPruefen\">\n        <dc:Bounds x=\"763\" y=\"309\" width=\"100\" height=\"80\" \/>\n      <\/bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"BPMNEdge_SequenceFlow_5\" bpmnElement=\"SequenceFlow_5\" sourceElement=\"_BPMNShape_ExclusiveGateway_3\" targetElement=\"_BPMNShape_UserTask_3\">\n        <di:waypoint x=\"672\" y=\"259\" \/>\n        <di:waypoint x=\"672\" y=\"349\" \/>\n        <di:waypoint x=\"763\" y=\"349\" \/>\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"608\" y=\"287\" width=\"85\" height=\"12\" \/>\n        <\/bpmndi:BPMNLabel>\n      <\/bpmndi:BPMNEdge>\n      <bpmndi:BPMNShape id=\"_BPMNShape_ExclusiveGateway_4\" bpmnElement=\"ExclusiveGateway_3\" isMarkerVisible=\"true\">\n        <dc:Bounds x=\"934\" y=\"209\" width=\"50\" height=\"50\" \/>\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"834\" y=\"234\" width=\"90\" height=\"0\" \/>\n        <\/bpmndi:BPMNLabel>\n      <\/bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"BPMNEdge_SequenceFlow_6\" bpmnElement=\"SequenceFlow_6\" sourceElement=\"_BPMNShape_ExclusiveGateway_3\" targetElement=\"_BPMNShape_ExclusiveGateway_4\">\n        <di:waypoint x=\"672\" y=\"209\" \/>\n        <di:waypoint x=\"672\" y=\"172\" \/>\n        <di:waypoint x=\"959\" y=\"172\" \/>\n        <di:waypoint x=\"959\" y=\"209\" \/>\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"775\" y=\"151\" width=\"59\" height=\"12\" \/>\n        <\/bpmndi:BPMNLabel>\n      <\/bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"BPMNEdge_SequenceFlow_7\" bpmnElement=\"SequenceFlow_7\" sourceElement=\"_BPMNShape_UserTask_3\" targetElement=\"_BPMNShape_ExclusiveGateway_4\">\n        <di:waypoint x=\"863\" y=\"349\" \/>\n        <di:waypoint x=\"959\" y=\"349\" \/>\n        <di:waypoint x=\"959\" y=\"259\" \/>\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"866\" y=\"331\" width=\"90\" height=\"6\" \/>\n        <\/bpmndi:BPMNLabel>\n      <\/bpmndi:BPMNEdge>\n      <bpmndi:BPMNShape id=\"_BPMNShape_ServiceTask_2\" bpmnElement=\"DbSpeichern\">\n        <dc:Bounds x=\"1065\" y=\"194\" width=\"100\" height=\"80\" \/>\n      <\/bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"BPMNEdge_SequenceFlow_8\" bpmnElement=\"SequenceFlow_8\" sourceElement=\"_BPMNShape_ExclusiveGateway_4\" targetElement=\"_BPMNShape_ServiceTask_2\">\n        <di:waypoint x=\"984\" y=\"234\" \/>\n        <di:waypoint x=\"1065\" y=\"234\" \/>\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"979.5\" y=\"216\" width=\"90\" height=\"6\" \/>\n        <\/bpmndi:BPMNLabel>\n      <\/bpmndi:BPMNEdge>\n      <bpmndi:BPMNShape id=\"_BPMNShape_EndEvent_2\" bpmnElement=\"EndEvent_1\">\n        <dc:Bounds x=\"1299\" y=\"216\" width=\"36\" height=\"36\" \/>\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"1275\" y=\"257\" width=\"85\" height=\"12\" \/>\n        <\/bpmndi:BPMNLabel>\n      <\/bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"BPMNEdge_SequenceFlow_9\" bpmnElement=\"SequenceFlow_9\" sourceElement=\"_BPMNShape_ServiceTask_2\" targetElement=\"_BPMNShape_EndEvent_2\">\n        <di:waypoint x=\"1165\" y=\"234\" \/>\n        <di:waypoint x=\"1299\" y=\"234\" \/>\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"1187\" y=\"216\" width=\"90\" height=\"6\" \/>\n        <\/bpmndi:BPMNLabel>\n      <\/bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"BPMNEdge_SequenceFlow_10\" bpmnElement=\"SequenceFlow_10\" sourceElement=\"ServiceTask_1ikva3x_di\" targetElement=\"_BPMNShape_ExclusiveGateway_3\">\n        <di:waypoint x=\"470\" y=\"234\" \/>\n        <di:waypoint x=\"647\" y=\"234\" \/>\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"513.5\" y=\"216\" width=\"90\" height=\"6\" \/>\n        <\/bpmndi:BPMNLabel>\n      <\/bpmndi:BPMNEdge>\n      <bpmndi:BPMNShape id=\"StartEvent_0b7nwby_di\" bpmnElement=\"StartEventProcessStarted\">\n        <dc:Bounds x=\"173\" y=\"216\" width=\"36\" height=\"36\" \/>\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"161\" y=\"257\" width=\"62\" height=\"24\" \/>\n        <\/bpmndi:BPMNLabel>\n      <\/bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"ServiceTask_1ikva3x_di\" bpmnElement=\"ScoreAbfragen\">\n        <dc:Bounds x=\"370\" y=\"194\" width=\"100\" height=\"80\" \/>\n      <\/bpmndi:BPMNShape>\n    <\/bpmndi:BPMNPlane>\n  <\/bpmndi:BPMNDiagram>\n<\/bpmn:definitions>\n';
+      importXML(diagramXML);
+
+    })(window.BpmnJS, window.jQuery);
+  </script>
+</body>
+</html>
