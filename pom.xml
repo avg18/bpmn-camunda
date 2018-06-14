@@ -131,6 +131,12 @@
     </dependency>
 
     <dependency>
+      <groupId>org.apache.thrift</groupId>
+      <artifactId>libthrift</artifactId>
+      <version>0.11.0</version>
+    </dependency>
+
+    <dependency>
       <!--  java util logging => slf4j -->
       <groupId>org.slf4j</groupId>
       <artifactId>jul-to-slf4j</artifactId>

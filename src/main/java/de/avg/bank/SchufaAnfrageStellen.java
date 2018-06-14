@@ -1,29 +1,35 @@
 package de.avg.bank;
 
+import de.hska.iwi.avg.schufasystem.service.SchufaService.Business;
+import de.hska.iwi.avg.schufasystem.service.SchufaService.Int;
+import de.hska.iwi.avg.schufasystem.service.SchufaService.Person;
+import de.hska.iwi.avg.schufasystem.service.SchufaService.SchufaService;
+import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.JavaDelegate;
-import java.util.concurrent.ThreadLocalRandom;
- 
+
+
 public class SchufaAnfrageStellen implements JavaDelegate {
-	int min = 1;
-	int max = 3000;
-	public static final String SHOULD_FAIL_VAR_NAME = "shouldFail";
 	public static final String SCORE_VAR_NAME = "score";
-	public static final Long SCORE = (long) 2000;
-	
+//	public static final Long SCORE = (long) 2000;
+	public static Long SCORE = 0L;
+
+
 	 public void execute(DelegateExecution execution) throws Exception {
-		 
-		 if(((Boolean)execution.getVariable(SHOULD_FAIL_VAR_NAME)) == true) {
-		      throw new RuntimeException("Service invocation failure!");
+		 TTransport transport;
+		 transport = new TSocket("localhost", 9090);
+		 transport.open();
+		 TProtocol protocol = new TBinaryProtocol(transport);
+		 SchufaService.Client client = new SchufaService.Client(protocol);
 
-		    } else {
-		      execution.setVariable(SCORE_VAR_NAME, SCORE);
+		 Person p1 = new Person("Hans", "Wurst");
 
-		    }
-//	      int randomScore = ThreadLocalRandom.current().nextInt(min, max + 1);
-//	      execution.setVariable(SCORE_VAR_NAME, randomScore);	      
+		 SCORE = (long) client.getScore(p1, Business.energy).getValue();
+
+
+		 execution.setVariable(SCORE_VAR_NAME, SCORE);
 	    }
-
-	
-
 }
